@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE } from "@/lib/server/constants";
 
 import { cookies } from "next/headers";
+import { findOrCreateUser } from "@/db/users";
 
 function getInitials(name: string) {
   const [first, last] = name.split(" ");
@@ -23,7 +24,14 @@ async function signOut() {
 
 export default async function HomePage() {
   const user = await getLoggedInUser();
+  console.log({ user });
   if (!user) redirect("/signin");
+
+  await findOrCreateUser({
+    userId: user.$id,
+    name: user.name,
+    email: user.email,
+  });
 
   return (
     <div className="u-max-width-500 u-width-full-line">

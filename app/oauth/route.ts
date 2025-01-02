@@ -1,8 +1,7 @@
-import { createAdminClient, getLoggedInUser } from "@/lib/server/appwrite";
+import { createAdminClient } from "@/lib/server/appwrite";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/server/constants";
-import { findOrCreateUser } from "@/db/users";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   const { account } = await createAdminClient();
   const session = await account.createSession(userId, secret);
-
+  console.log({ session });
   if (!session || !session.secret) {
     return new NextResponse("Failed to create session from token", {
       status: 400,
@@ -26,16 +25,6 @@ export async function GET(request: NextRequest) {
     httpOnly: true,
     sameSite: "strict",
     secure: true,
-  });
-
-  const user = await getLoggedInUser();
-  if (!user) {
-    throw new Error("Session not found");
-  }
-  await findOrCreateUser({
-    userId: user.$id,
-    name: user.name,
-    email: user.email,
   });
 
   return NextResponse.redirect(`${request.nextUrl.origin}/account`);

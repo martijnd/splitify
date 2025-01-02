@@ -5,8 +5,8 @@ import { SESSION_COOKIE } from "./constants";
 
 export async function createSessionClient() {
   const client = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT as string)
+    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID as string);
 
   const session = (await cookies()).get(SESSION_COOKIE);
   if (!session || !session.value) {
