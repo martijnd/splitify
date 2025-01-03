@@ -24,7 +24,7 @@ async function signOut() {
 
 export default async function HomePage() {
   const user = await getLoggedInUser();
-  console.log({ user });
+
   if (!user) redirect("/signin");
 
   await findOrCreateUser({

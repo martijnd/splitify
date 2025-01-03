@@ -13,19 +13,21 @@ export async function GET(request: NextRequest) {
 
   const { account } = await createAdminClient();
   const session = await account.createSession(userId, secret);
-  console.log({ session });
+
   if (!session || !session.secret) {
     return new NextResponse("Failed to create session from token", {
       status: 400,
     });
   }
 
-  (await cookies()).set(SESSION_COOKIE, session.secret, {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, session.secret, {
     path: "/",
     httpOnly: true,
     sameSite: "strict",
     secure: true,
   });
-
-  return NextResponse.redirect(`${request.nextUrl.origin}/account`);
+  const response = NextResponse.redirect(`${request.nextUrl.origin}/account`);
+  response.cookies.set(SESSION_COOKIE, session.secret);
+  return response;
 }
