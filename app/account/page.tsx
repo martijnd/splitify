@@ -3,13 +3,10 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE } from "@/lib/server/constants";
 
 import { cookies } from "next/headers";
-import { findOrCreateUser } from "@/db/users";
-
-function getInitials(name: string) {
-  const [first, last] = name.split(" ");
-  if (last) return `${first[0]}${last[0]}`;
-  return `${first[0]}`;
-}
+import { findOrCreateUser } from "@/db/models/users";
+import { createEvent, getEventsForUser } from "@/db/models/events";
+import { FormEvent } from "react";
+import Link from "next/link";
 
 async function signOut() {
   "use server";
@@ -22,63 +19,75 @@ async function signOut() {
   redirect("/signin");
 }
 
+async function onCreateEvent(formData: FormData) {
+  "use server";
+  const user = await getLoggedInUser();
+  if (!user) return;
+  const dbUser = await findOrCreateUser(user.$id, {
+    name: user.name,
+    email: user.email,
+  });
+  if (!dbUser) return;
+
+  const name = formData.get("name") as string;
+  const description = formData.get("description") as string;
+
+  await createEvent({
+    name,
+    description,
+    creatorId: dbUser.$id,
+  });
+
+  return redirect("/account");
+}
+
 export default async function HomePage() {
   const user = await getLoggedInUser();
 
   if (!user) redirect("/signin");
 
-  await findOrCreateUser({
-    userId: user.$id,
+  const dbUser = await findOrCreateUser(user.$id, {
     name: user.name,
     email: user.email,
   });
 
+  const events = await getEventsForUser(dbUser);
+
   return (
-    <div className="u-max-width-500 u-width-full-line">
-      <h1 className="heading-level-2 u-margin-block-start-auto">
-        Your account
-      </h1>
-      <div className="u-margin-block-start-24">
-        <section className="card">
-          <div className="user-profile">
-            <span className="avatar">{getInitials(user.name)}</span>
-            <span className="user-profile-info">
-              <span className="name">{user.email}</span>
-              <div className="interactive-text-output u-padding-inline-0">
-                <span className="text">{user.$id}</span>
-                <div className="u-flex u-cross-child-start u-gap-8">
-                  <button
-                    className="interactive-text-output-button"
-                    aria-label="copy text"
-                  >
-                    <span className="icon-duplicate" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            </span>
-            <span className="user-profile-sep" />
-            <span className="user-profile-empty-column" />
-            <span className="user-profile-info">
-              <span className="text">Welcome back, {user.name}!</span>
-            </span>
-          </div>
-        </section>
-        <form className="form common-section" action={signOut}>
-          <ul
-            className="form-list"
-            style={{ "--form-list-gap": "1.5rem" } as React.CSSProperties}
-          >
-            <li className="form-item">
-              <button
-                className="button is-secondary is-full-width"
-                type="submit"
-              >
-                Sign out
-              </button>
-            </li>
-          </ul>
-        </form>
-      </div>
-    </div>
+    <>
+      <h1>Your account</h1>
+      <span>{user.name}</span>
+      <form action={signOut}>
+        <button type="submit">Sign out</button>
+      </form>
+      <h2>Events</h2>
+      <ul>
+        {events?.documents.map((event) => (
+          <li key={event.$id}>
+            <Link href={`/events/${event.$id}`}>
+              <span>{event.name}</span>{" "}
+              {event.creatorId === dbUser?.$id ? (
+                <span>Created by me</span>
+              ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <h2>Create event</h2>
+
+      <form action={onCreateEvent}>
+        <label>
+          Name
+          <input name="name" />
+        </label>
+        <label>
+          Description
+          <textarea name="description" />
+        </label>
+
+        <button type="submit">Create event</button>
+      </form>
+    </>
   );
 }

@@ -25,15 +25,16 @@ export async function createUser({
   }
 }
 
-export async function findOrCreateUser({
-  userId,
-  name,
-  email,
-}: {
-  userId: string;
-  name: string;
-  email: string;
-}) {
+export async function findOrCreateUser(
+  userId: string,
+  {
+    name,
+    email,
+  }: {
+    name: string;
+    email: string;
+  }
+) {
   const user = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
     Query.equal("userId", userId),
   ]);
